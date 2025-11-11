@@ -1,0 +1,7 @@
+{
+  "name": "Live Sports Tracker",
+  "description": "A real-time tracking application for sports events, featuring an admin panel for event management and a participant panel for tracking and emergency alerts.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
