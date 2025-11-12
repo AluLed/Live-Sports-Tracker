@@ -4,12 +4,15 @@ import AdminLogin from './components/AdminLogin';
 import AdminDashboard from './components/AdminDashboard';
 import ParticipantRegister from './components/ParticipantRegister';
 import ParticipantTracking from './components/ParticipantTracking';
-import { socketServer, SocketServer } from './socket';
+// FIX: import SocketClient instead of non-existent SocketServer
+import { socketServer, SocketClient } from './socket';
 
 type View = 'home' | 'admin-login' | 'admin-dashboard' | 'participant-register' | 'participant-tracking';
 
-const SocketContext = createContext<SocketServer | null>(null);
-export const useSocket = () => useContext(SocketContext) as SocketServer;
+// FIX: use SocketClient as the type
+const SocketContext = createContext<SocketClient | null>(null);
+// FIX: use SocketClient as the type
+export const useSocket = () => useContext(SocketContext) as SocketClient;
 
 const App: React.FC = () => {
     const [view, setView] = useState<View>('home');
