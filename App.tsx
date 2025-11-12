@@ -57,45 +57,11 @@ const App: React.FC = () => {
         const handleParticipantLeft = (data: { participantId: string }) => {
             setParticipants(prev => prev.filter(p => p.id !== data.participantId));
         };
-        
-        const handleEventAdded = (newEvent: Event) => {
-            setEvents(prev => {
-                let currentEvents = [...prev];
-                if (newEvent.active) {
-                    currentEvents = currentEvents.map(e => ({ ...e, active: false }));
-                }
-                if (currentEvents.some(e => e.id === newEvent.id)) {
-                    return currentEvents;
-                }
-                return [...currentEvents, newEvent];
-            });
-        };
-        
-        const handleEventUpdated = (updatedEvent: Event) => {
-            setEvents(prevEvents => 
-                prevEvents.map(event => {
-                    if (event.id === updatedEvent.id) {
-                        return updatedEvent;
-                    }
-                    if (updatedEvent.active) {
-                        return { ...event, active: false };
-                    }
-                    return event;
-                })
-            );
-        };
-
-        const handleEventDeleted = (data: { eventId: string }) => {
-            setEvents(prev => prev.filter(e => e.id !== data.eventId));
-        };
 
         socketValue.on('location-update', handleLocationUpdate);
         socketValue.on('panic', handlePanic);
         socketValue.on('participant-registered', handleParticipantRegistered);
         socketValue.on('participant-left', handleParticipantLeft);
-        socketValue.on('event-added', handleEventAdded);
-        socketValue.on('event-updated', handleEventUpdated);
-        socketValue.on('event-deleted', handleEventDeleted);
 
 
         return () => {
@@ -103,9 +69,6 @@ const App: React.FC = () => {
             socketValue.off('panic', handlePanic);
             socketValue.off('participant-registered', handleParticipantRegistered);
             socketValue.off('participant-left', handleParticipantLeft);
-            socketValue.off('event-added', handleEventAdded);
-            socketValue.off('event-updated', handleEventUpdated);
-            socketValue.off('event-deleted', handleEventDeleted);
         };
     }, [socketValue]);
 
@@ -199,16 +162,32 @@ const App: React.FC = () => {
             ...eventData,
             id: `evt-${Date.now()}`,
         };
-        socketValue.emit('event-added', newEvent);
-    }, [socketValue]);
+        setEvents(prev => {
+            let newEvents = [...prev];
+            if (newEvent.active) {
+                newEvents = newEvents.map(e => ({ ...e, active: false }));
+            }
+            return [...newEvents, newEvent];
+        });
+    }, []);
 
     const updateEvent = useCallback((updatedEvent: Event) => {
-        socketValue.emit('event-updated', updatedEvent);
-    }, [socketValue]);
+        setEvents(prevEvents => 
+            prevEvents.map(event => {
+                if (event.id === updatedEvent.id) {
+                    return updatedEvent;
+                }
+                if (updatedEvent.active) {
+                    return { ...event, active: false };
+                }
+                return event;
+            })
+        );
+    }, []);
 
     const deleteEvent = useCallback((eventId: string) => {
-        socketValue.emit('event-deleted', { eventId });
-    }, [socketValue]);
+        setEvents(prev => prev.filter(e => e.id !== eventId));
+    }, []);
 
     const cancelPanic = useCallback((participantId: string) => {
         setParticipants(prev =>
