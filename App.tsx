@@ -4,15 +4,12 @@ import AdminLogin from './components/AdminLogin';
 import AdminDashboard from './components/AdminDashboard';
 import ParticipantRegister from './components/ParticipantRegister';
 import ParticipantTracking from './components/ParticipantTracking';
-// FIX: import SocketClient instead of non-existent SocketServer
-import { socketServer, SocketClient } from './socket';
+import { socketServer, SocketServer } from './socket';
 
 type View = 'home' | 'admin-login' | 'admin-dashboard' | 'participant-register' | 'participant-tracking';
 
-// FIX: use SocketClient as the type
-const SocketContext = createContext<SocketClient | null>(null);
-// FIX: use SocketClient as the type
-export const useSocket = () => useContext(SocketContext) as SocketClient;
+const SocketContext = createContext<SocketServer | null>(null);
+export const useSocket = () => useContext(SocketContext) as SocketServer;
 
 const App: React.FC = () => {
     const [view, setView] = useState<View>('home');
@@ -54,13 +51,7 @@ const App: React.FC = () => {
         };
         
         const handleParticipantRegistered = (participant: Participant) => {
-            setParticipants(prev => {
-                // Prevent adding duplicates
-                if (prev.some(p => p.id === participant.id)) {
-                    return prev;
-                }
-                return [...prev, participant];
-            });
+             setParticipants(prev => [...prev, participant]);
         };
 
         const handleParticipantLeft = (data: { participantId: string }) => {
@@ -68,20 +59,15 @@ const App: React.FC = () => {
         };
         
         const handleEventAdded = (newEvent: Event) => {
-            setEvents(prevEvents => {
-                // Prevent adding duplicates.
-                if (prevEvents.some(e => e.id === newEvent.id)) {
-                    return prevEvents;
-                }
-                
-                // If the new event is active, create a new list with all old events deactivated.
+            setEvents(prev => {
+                let currentEvents = [...prev];
                 if (newEvent.active) {
-                    const deactivatedOldEvents = prevEvents.map(e => ({ ...e, active: false }));
-                    return [...deactivatedOldEvents, newEvent];
-                } 
-                
-                // Otherwise, just add the new (inactive) event to the existing list.
-                return [...prevEvents, newEvent];
+                    currentEvents = currentEvents.map(e => ({ ...e, active: false }));
+                }
+                if (currentEvents.some(e => e.id === newEvent.id)) {
+                    return currentEvents;
+                }
+                return [...currentEvents, newEvent];
             });
         };
         
@@ -103,14 +89,6 @@ const App: React.FC = () => {
             setEvents(prev => prev.filter(e => e.id !== data.eventId));
         };
 
-        const handlePanicCanceled = (data: { participantId: string }) => {
-            setParticipants(prev =>
-                prev.map(p =>
-                    p.id === data.participantId ? { ...p, status: 'tracking' } : p
-                )
-            );
-        };
-
         socketValue.on('location-update', handleLocationUpdate);
         socketValue.on('panic', handlePanic);
         socketValue.on('participant-registered', handleParticipantRegistered);
@@ -118,7 +96,6 @@ const App: React.FC = () => {
         socketValue.on('event-added', handleEventAdded);
         socketValue.on('event-updated', handleEventUpdated);
         socketValue.on('event-deleted', handleEventDeleted);
-        socketValue.on('cancel-panic', handlePanicCanceled);
 
 
         return () => {
@@ -129,7 +106,6 @@ const App: React.FC = () => {
             socketValue.off('event-added', handleEventAdded);
             socketValue.off('event-updated', handleEventUpdated);
             socketValue.off('event-deleted', handleEventDeleted);
-            socketValue.off('cancel-panic', handlePanicCanceled);
         };
     }, [socketValue]);
 
@@ -234,9 +210,13 @@ const App: React.FC = () => {
         socketValue.emit('event-deleted', { eventId });
     }, [socketValue]);
 
-    const triggerCancelPanic = useCallback((participantId: string) => {
-        socketValue.emit('cancel-panic', { participantId });
-    }, [socketValue]);
+    const cancelPanic = useCallback((participantId: string) => {
+        setParticipants(prev =>
+            prev.map(p =>
+                p.id === participantId ? { ...p, status: 'tracking' } : p
+            )
+        );
+    }, []);
 
     const activeEvents = events.filter(e => e.active);
     
@@ -254,7 +234,7 @@ const App: React.FC = () => {
                     onAddEvent={addEvent}
                     onUpdateEvent={updateEvent}
                     onDeleteEvent={deleteEvent}
-                    onCancelPanic={triggerCancelPanic}
+                    onCancelPanic={cancelPanic}
                 />;
             case 'participant-register':
                 return <ParticipantRegister 
@@ -276,17 +256,17 @@ const App: React.FC = () => {
             case 'home':
             default:
                 return (
-                    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4 text-center">
+                    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 text-center">
                         <header className="mb-12">
-                            <h1 className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">
+                            <h1 className="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">
                                 Seguimiento Deportivo en Vivo
                             </h1>
-                            <p className="text-gray-600 mt-4 text-lg">Monitoreo en tiempo real para tus eventos deportivos.</p>
+                            <p className="text-gray-400 mt-4 text-lg">Monitoreo en tiempo real para tus eventos deportivos.</p>
                         </header>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
-                            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 hover:border-blue-500 transition-all duration-300">
-                                <h2 className="text-3xl font-bold text-gray-900 mb-4">Panel de Administrador</h2>
-                                <p className="text-gray-600 mb-6">Gestiona eventos, monitorea participantes y garantiza la seguridad desde el centro de control.</p>
+                            <div className="bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-700 hover:border-blue-500 transition-all duration-300">
+                                <h2 className="text-3xl font-bold text-white mb-4">Panel de Administrador</h2>
+                                <p className="text-gray-400 mb-6">Gestiona eventos, monitorea participantes y garantiza la seguridad desde el centro de control.</p>
                                 <button
                                     onClick={() => navigateTo('admin-login')}
                                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105"
@@ -294,9 +274,9 @@ const App: React.FC = () => {
                                     Acceder al Panel de Admin
                                 </button>
                             </div>
-                            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 hover:border-teal-500 transition-all duration-300">
-                                <h2 className="text-3xl font-bold text-gray-900 mb-4">Panel de Participante</h2>
-                                <p className="text-gray-600 mb-6">Únete a un evento, comparte tu ubicación en tiempo real y ten acceso a alertas de emergencia.</p>
+                            <div className="bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-700 hover:border-teal-500 transition-all duration-300">
+                                <h2 className="text-3xl font-bold text-white mb-4">Panel de Participante</h2>
+                                <p className="text-gray-400 mb-6">Únete a un evento, comparte tu ubicación en tiempo real y ten acceso a alertas de emergencia.</p>
                                 <button
                                     onClick={() => navigateTo('participant-register')}
                                     className="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105"
@@ -312,7 +292,7 @@ const App: React.FC = () => {
 
     return (
         <SocketContext.Provider value={socketValue}>
-            <main className="min-h-screen bg-gray-100 text-gray-800">
+            <main className="min-h-screen bg-gray-900 text-white">
                 {renderView()}
             </main>
         </SocketContext.Provider>

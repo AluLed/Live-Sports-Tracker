@@ -19,19 +19,19 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-            <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
-                <h2 className="text-3xl font-bold text-center text-gray-900 mb-2">Acceso de Administrador</h2>
-                <p className="text-center text-gray-600 mb-8">Ingresa la contraseña para acceder al panel de control.</p>
+        <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4">
+            <div className="w-full max-w-md bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-700">
+                <h2 className="text-3xl font-bold text-center text-white mb-2">Acceso de Administrador</h2>
+                <p className="text-center text-gray-400 mb-8">Ingresa la contraseña para acceder al panel de control.</p>
                 <form onSubmit={handleSubmit}>
                     <div className="mb-6">
-                        <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-700">Contraseña</label>
+                        <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-300">Contraseña</label>
                         <input
                             type="password"
                             id="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3"
+                            className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3"
                             placeholder="••••••••"
                             required
                         />
