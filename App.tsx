@@ -54,7 +54,13 @@ const App: React.FC = () => {
         };
         
         const handleParticipantRegistered = (participant: Participant) => {
-             setParticipants(prev => [...prev, participant]);
+            setParticipants(prev => {
+                // Prevent adding duplicates
+                if (prev.some(p => p.id === participant.id)) {
+                    return prev;
+                }
+                return [...prev, participant];
+            });
         };
 
         const handleParticipantLeft = (data: { participantId: string }) => {
@@ -62,15 +68,20 @@ const App: React.FC = () => {
         };
         
         const handleEventAdded = (newEvent: Event) => {
-            setEvents(prev => {
-                let currentEvents = [...prev];
+            setEvents(prevEvents => {
+                // Prevent adding duplicates.
+                if (prevEvents.some(e => e.id === newEvent.id)) {
+                    return prevEvents;
+                }
+                
+                // If the new event is active, create a new list with all old events deactivated.
                 if (newEvent.active) {
-                    currentEvents = currentEvents.map(e => ({ ...e, active: false }));
-                }
-                if (currentEvents.some(e => e.id === newEvent.id)) {
-                    return currentEvents;
-                }
-                return [...currentEvents, newEvent];
+                    const deactivatedOldEvents = prevEvents.map(e => ({ ...e, active: false }));
+                    return [...deactivatedOldEvents, newEvent];
+                } 
+                
+                // Otherwise, just add the new (inactive) event to the existing list.
+                return [...prevEvents, newEvent];
             });
         };
         
@@ -92,6 +103,14 @@ const App: React.FC = () => {
             setEvents(prev => prev.filter(e => e.id !== data.eventId));
         };
 
+        const handlePanicCanceled = (data: { participantId: string }) => {
+            setParticipants(prev =>
+                prev.map(p =>
+                    p.id === data.participantId ? { ...p, status: 'tracking' } : p
+                )
+            );
+        };
+
         socketValue.on('location-update', handleLocationUpdate);
         socketValue.on('panic', handlePanic);
         socketValue.on('participant-registered', handleParticipantRegistered);
@@ -99,6 +118,7 @@ const App: React.FC = () => {
         socketValue.on('event-added', handleEventAdded);
         socketValue.on('event-updated', handleEventUpdated);
         socketValue.on('event-deleted', handleEventDeleted);
+        socketValue.on('cancel-panic', handlePanicCanceled);
 
 
         return () => {
@@ -109,6 +129,7 @@ const App: React.FC = () => {
             socketValue.off('event-added', handleEventAdded);
             socketValue.off('event-updated', handleEventUpdated);
             socketValue.off('event-deleted', handleEventDeleted);
+            socketValue.off('cancel-panic', handlePanicCanceled);
         };
     }, [socketValue]);
 
@@ -213,13 +234,9 @@ const App: React.FC = () => {
         socketValue.emit('event-deleted', { eventId });
     }, [socketValue]);
 
-    const cancelPanic = useCallback((participantId: string) => {
-        setParticipants(prev =>
-            prev.map(p =>
-                p.id === participantId ? { ...p, status: 'tracking' } : p
-            )
-        );
-    }, []);
+    const triggerCancelPanic = useCallback((participantId: string) => {
+        socketValue.emit('cancel-panic', { participantId });
+    }, [socketValue]);
 
     const activeEvents = events.filter(e => e.active);
     
@@ -237,7 +254,7 @@ const App: React.FC = () => {
                     onAddEvent={addEvent}
                     onUpdateEvent={updateEvent}
                     onDeleteEvent={deleteEvent}
-                    onCancelPanic={cancelPanic}
+                    onCancelPanic={triggerCancelPanic}
                 />;
             case 'participant-register':
                 return <ParticipantRegister 
